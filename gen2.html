@@ -1,33 +1,3 @@
-ChatGPT
-
-Image is not showing up in starfall once i put it in the hud
-
-I’ll fix the Starfall export path for images. The issue is usually that Starfall needs the image downloaded with http.get() first, then loaded with render.createMaterial("data/..." ), not just drawn directly from a web URL.
-
-Fixed the Starfall image export drawing.
-
-Use raw image links, like raw.githubusercontent.com/.../image.png, not GitHub blob links.
-
-Now we want a Border Box (Creates a square border)
-as well as Line (Creates a line)
-and if possible Circle (Creates a circle/oval)
-
-I’ll add three new drawable element types to the builder and make sure the Lua exporter outputs StarfallEx render calls for each: drawOutlinedRect, drawLine, and circle/oval drawing.
-
-I checked the StarfallEx render library names: border boxes should export as render.drawRectOutline, lines as render.drawLine, and circles as render.drawCircle / render.drawFilledCircle.
-
-Added Border Box, Line, and Circle/Oval export.
-
-It exports using StarfallEx’s render.drawRectOutline, render.drawLine, render.drawCircle, and render.drawFilledCircle.
-
-Now we need to add drag points so we can resize and move it in the studio 
-so for example the line, we can move the two points 
-a box the 4 corners like an actual paint resize system
-
-I’ll upgrade the studio canvas controls: selected boxes/images/circles get corner resize handles, lines get draggable start/end points, and the element body still moves normally.
-
-Added paint-style drag points.
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -517,5 +487,3 @@ render();
 </script>
 </body>
 </html>
-
-
