@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>StarfallEx UI Creator - Lua Exporter</title>
+<style>
+:root{
+  --bg:#0b1210; --panel:#111d18; --panel2:#172820; --text:#d8ffe8; --muted:#8cba9f;
+  --accent:#38ff86; --accent2:#1fbf63; --danger:#ff4d6d; --line:#244131;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at top,#13231b,#050806 70%);color:var(--text);font-family:Arial,Helvetica,sans-serif;height:100vh;overflow:hidden}
+.app{display:grid;grid-template-columns:260px 1fr 380px;height:100vh;gap:10px;padding:10px}
+.panel{background:rgba(17,29,24,.96);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 30px #0008;overflow:hidden}
+.panel h2{font-size:16px;margin:0;padding:13px 14px;border-bottom:1px solid var(--line);background:#0d1712;color:var(--accent)}
+.panel .body{padding:12px}
+button,input,select,textarea{font:inherit}
+button{background:linear-gradient(#28d977,#149c4e);border:0;color:#031008;font-weight:800;border-radius:10px;padding:9px 10px;cursor:pointer;margin:4px 0}
+button:hover{filter:brightness(1.12)}
+button.secondary{background:#203a2c;color:var(--text);border:1px solid #315b43}
+button.danger{background:linear-gradient(#ff6680,#c51f43);color:white}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+label{display:block;font-size:12px;color:var(--muted);margin-top:8px}
+input,select,textarea{width:100%;background:#08100c;color:var(--text);border:1px solid #315b43;border-radius:9px;padding:8px;outline:none}
+textarea{height:260px;resize:none;font-family:Consolas,monospace;font-size:12px}
+.stageWrap{display:flex;align-items:center;justify-content:center;min-width:0}
+.stagePanel{display:flex;flex-direction:column;height:100%}
+.toolbar{padding:9px 12px;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.canvasOuter{flex:1;display:flex;align-items:center;justify-content:center;overflow:auto;padding:15px}
+#stage{position:relative;width:512px;height:512px;background:#111;border:3px solid #315b43;box-shadow:0 0 0 8px #050806,0 10px 40px #000;transform-origin:center}
+.grid{background-image:linear-gradient(to right,rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(to bottom,rgba(255,255,255,.06) 1px,transparent 1px);background-size:32px 32px}
+.item{position:absolute;user-select:none;cursor:move;border:1px solid transparent;overflow:hidden}
+.item.selected{outline:2px solid var(--accent);box-shadow:0 0 12px #38ff8670}
+.item .handle{position:absolute;right:0;bottom:0;width:12px;height:12px;background:var(--accent);cursor:nwse-resize}
+.itemText{display:flex;align-items:center;justify-content:center;width:100%;height:100%;white-space:pre-wrap;text-align:center}
+.small{font-size:12px;color:var(--muted)}
+.list{display:flex;flex-direction:column;gap:6px;max-height:170px;overflow:auto}
+.layer{padding:7px;border:1px solid #254934;border-radius:8px;background:#0c1510;cursor:pointer}
+.layer.active{border-color:var(--accent);color:var(--accent)}
+.copyMsg{font-size:12px;color:var(--accent);min-height:18px}
+</style>
+</head>
+<body>
+<div class="app">
+  <section class="panel">
+    <h2>Elements</h2>
+    <div class="body">
+      <button onclick="addElement('panel')" style="width:100%">+ Panel / Box</button>
+      <button onclick="addElement('button')" style="width:100%">+ Button</button>
+      <button onclick="addElement('text')" style="width:100%">+ Text</button>
+      <button onclick="addElement('image')" style="width:100%">+ Image Placeholder</button>
+      <hr style="border-color:#244131;border-style:solid none none;margin:14px 0">
+      <button class="secondary" onclick="duplicateSelected()" style="width:100%">Duplicate Selected</button>
+      <button class="danger" onclick="deleteSelected()" style="width:100%">Delete Selected</button>
+      <button class="secondary" onclick="clearAll()" style="width:100%">Clear All</button>
+      <p class="small">Drag elements around the 512x512 Starfall screen. Resize from the green corner.</p>
+      <h2 style="margin:14px -12px 8px">Layers</h2>
+      <div id="layers" class="list"></div>
+    </div>
+  </section>
+
+  <section class="panel stagePanel">
+    <div class="toolbar">
+      <strong style="color:var(--accent)">StarfallEx Screen UI Builder</strong>
+      <button class="secondary" onclick="toggleGrid()">Grid</button>
+      <button class="secondary" onclick="exportLua()">Export Starfall Lua</button>
+      <button class="secondary" onclick="copyExport()">Copy Export</button>
+      <span class="small">Exports standalone `--@client` Lua.</span>
+    </div>
+    <div class="canvasOuter">
+      <div id="stage" class="grid"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Properties</h2>
+    <div class="body">
+      <div id="propsEmpty" class="small">Select an element to edit it.</div>
+      <div id="props" style="display:none">
+        <label>Name</label><input id="pName" oninput="updateProp('name',this.value)">
+        <label>Type</label><input id="pType" disabled>
+        <div class="row">
+          <div><label>X</label><input id="pX" type="number" oninput="updateProp('x',+this.value)"></div>
+          <div><label>Y</label><input id="pY" type="number" oninput="updateProp('y',+this.value)"></div>
+          <div><label>W</label><input id="pW" type="number" oninput="updateProp('w',+this.value)"></div>
+          <div><label>H</label><input id="pH" type="number" oninput="updateProp('h',+this.value)"></div>
+        </div>
+        <label>Text</label><input id="pText" oninput="updateProp('text',this.value)">
+        <div class="row">
+          <div><label>Background</label><input id="pBg" type="color" oninput="updateProp('bg',this.value)"></div>
+          <div><label>Text Color</label><input id="pFg" type="color" oninput="updateProp('fg',this.value)"></div>
+        </div>
+        <div class="row">
+          <div><label>Alpha</label><input id="pAlpha" type="number" min="0" max="255" oninput="updateProp('alpha',+this.value)"></div>
+          <div><label>Font Size</label><input id="pFont" type="number" min="8" max="60" oninput="updateProp('font',+this.value)"></div>
+        </div>
+        <label>Button Action Name</label><input id="pAction" oninput="updateProp('action',this.value)" placeholder="example: openPage">
+      </div>
+      <hr style="border-color:#244131;border-style:solid none none;margin:14px 0">
+      <h2 style="margin:0 -12px 8px">Exported Starfall Lua</h2>
+      <div class="copyMsg" id="copyMsg"></div>
+      <textarea id="exportBox" spellcheck="false"></textarea>
+    </div>
+  </section>
+</div>
+
+<script>
+const stage = document.getElementById('stage');
+let elements = [];
+let selected = null;
+let idCounter = 1;
+let dragging = null;
+let resizing = null;
+
+function hexToRgb(hex){
+  hex = hex.replace('#','');
+  return {
+    r:parseInt(hex.slice(0,2),16),
+    g:parseInt(hex.slice(2,4),16),
+    b:parseInt(hex.slice(4,6),16)
+  };
+}
+function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
+function addElement(type){
+  const defaults = {
+    panel:{w:180,h:90,text:'Panel',bg:'#163523',fg:'#d8ffe8',font:18,alpha:220},
+    button:{w:150,h:45,text:'Button',bg:'#38ff86',fg:'#031008',font:18,alpha:255,action:'buttonClicked'},
+    text:{w:180,h:35,text:'Text Label',bg:'#000000',fg:'#d8ffe8',font:22,alpha:0},
+    image:{w:160,h:110,text:'Image',bg:'#263b31',fg:'#d8ffe8',font:16,alpha:180}
+  }[type];
+  const el = {id:idCounter++, type, name:type+"_"+idCounter, x:40+elements.length*12, y:40+elements.length*12, ...defaults};
+  elements.push(el);
+  selectElement(el.id);
+  render();
+}
+function render(){
+  stage.innerHTML = '';
+  elements.forEach(el=>{
+    const d = document.createElement('div');
+    d.className = 'item' + (selected===el.id?' selected':'');
+    d.style.left = el.x+'px'; d.style.top = el.y+'px'; d.style.width = el.w+'px'; d.style.height = el.h+'px';
+    const rgb = hexToRgb(el.bg);
+    d.style.background = el.alpha === 0 ? 'transparent' : `rgba(${rgb.r},${rgb.g},${rgb.b},${el.alpha/255})`;
+    d.style.color = el.fg;
+    d.style.opacity = '1';
+    d.style.textShadow = '0 1px 3px rgba(0,0,0,.9)';
+    d.dataset.id = el.id;
+    d.innerHTML = `<div class="itemText" style="font-size:${el.font}px">${escapeHtml(el.text)}</div><div class="handle"></div>`;
+    d.addEventListener('mousedown', startDrag);
+    d.querySelector('.handle').addEventListener('mousedown', startResize);
+    stage.appendChild(d);
+  });
+  renderLayers();
+  syncProps();
+}
+function escapeHtml(s){return String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
+function renderLayers(){
+  const box=document.getElementById('layers'); box.innerHTML='';
+  elements.slice().reverse().forEach(el=>{
+    const l=document.createElement('div'); l.className='layer'+(selected===el.id?' active':'');
+    l.textContent=`${el.name} (${el.type})`;
+    l.onclick=()=>selectElement(el.id);
+    box.appendChild(l);
+  });
+}
+function selectElement(id){selected=id;render();}
+function getSelected(){return elements.find(e=>e.id===selected);}
+function startDrag(e){
+  if(e.target.className==='handle') return;
+  const id=+this.dataset.id; selected=id;
+  const el=getSelected();
+  const rect=stage.getBoundingClientRect();
+  dragging={id,dx:e.clientX-rect.left-el.x,dy:e.clientY-rect.top-el.y};
+  document.addEventListener('mousemove', move);
+  document.addEventListener('mouseup', stop);
+  render();
+}
+function startResize(e){
+  e.stopPropagation();
+  const id=+this.parentElement.dataset.id; selected=id;
+  const el=getSelected();
+  resizing={id,startX:e.clientX,startY:e.clientY,w:el.w,h:el.h};
+  document.addEventListener('mousemove', move);
+  document.addEventListener('mouseup', stop);
+}
+function move(e){
+  const rect=stage.getBoundingClientRect();
+  if(dragging){
+    const el=elements.find(x=>x.id===dragging.id);
+    el.x=Math.round(clamp(e.clientX-rect.left-dragging.dx,0,512-el.w));
+    el.y=Math.round(clamp(e.clientY-rect.top-dragging.dy,0,512-el.h));
+    render();
+  }
+  if(resizing){
+    const el=elements.find(x=>x.id===resizing.id);
+    el.w=Math.round(clamp(resizing.w+(e.clientX-resizing.startX),10,512-el.x));
+    el.h=Math.round(clamp(resizing.h+(e.clientY-resizing.startY),10,512-el.y));
+    render();
+  }
+}
+function stop(){dragging=null;resizing=null;document.removeEventListener('mousemove',move);document.removeEventListener('mouseup',stop);}
+function syncProps(){
+  const el=getSelected();
+  document.getElementById('props').style.display=el?'block':'none';
+  document.getElementById('propsEmpty').style.display=el?'none':'block';
+  if(!el)return;
+  pName.value=el.name; pType.value=el.type; pX.value=el.x; pY.value=el.y; pW.value=el.w; pH.value=el.h;
+  pText.value=el.text; pBg.value=el.bg; pFg.value=el.fg; pAlpha.value=el.alpha; pFont.value=el.font; pAction.value=el.action||'';
+}
+function updateProp(k,v){
+  const el=getSelected(); if(!el)return;
+  if(['x','y','w','h','alpha','font'].includes(k)) v=Number.isFinite(v)?v:0;
+  el[k]=v;
+  if(k==='x')el.x=clamp(el.x,0,512-el.w);
+  if(k==='y')el.y=clamp(el.y,0,512-el.h);
+  if(k==='w')el.w=clamp(el.w,10,512-el.x);
+  if(k==='h')el.h=clamp(el.h,10,512-el.y);
+  render();
+}
+function duplicateSelected(){
+  const el=getSelected(); if(!el)return;
+  const copy={...el,id:idCounter++,name:el.name+'_copy',x:clamp(el.x+20,0,512-el.w),y:clamp(el.y+20,0,512-el.h)};
+  elements.push(copy); selected=copy.id; render();
+}
+function deleteSelected(){elements=elements.filter(e=>e.id!==selected); selected=null; render();}
+function clearAll(){
+  elements = [];
+  selected = null;
+  dragging = null;
+  resizing = null;
+  document.getElementById('exportBox').value = '';
+  render();
+}
+function toggleGrid(){stage.classList.toggle('grid');}
+
+function luaString(s){return JSON.stringify(String(s));}
+function exportLua(){
+  const lines = [];
+  lines.push("--@name Exported StarfallEx Screen UI");
+  lines.push("--@author UI Creator Exporter");
+  lines.push("--@client");
+  lines.push("");
+  lines.push("-- Link this chip to a Starfall screen.");
+  lines.push("-- Screens are 512x512 units in StarfallEx render.");
+  lines.push("");
+  lines.push("local white = Color(255, 255, 255, 255)");
+  lines.push("local elements = {");
+  elements.forEach(el=>{
+    const bg=hexToRgb(el.bg), fg=hexToRgb(el.fg);
+    const action = el.type === 'button' ? (el.action || el.name || 'buttonClicked') : '';
+    lines.push("    {");
+    lines.push(`        type = ${luaString(el.type)}, name = ${luaString(el.name)},`);
+    lines.push(`        x = ${Math.round(el.x)}, y = ${Math.round(el.y)}, w = ${Math.round(el.w)}, h = ${Math.round(el.h)},`);
+    lines.push(`        text = ${luaString(el.text)}, font = ${Math.round(el.font)},`);
+    lines.push(`        bg = Color(${bg.r}, ${bg.g}, ${bg.b}, ${Math.round(el.alpha)}),`);
+    lines.push(`        fg = Color(${fg.r}, ${fg.g}, ${fg.b}, 255),`);
+    if(action) lines.push(`        action = ${luaString(action)},`);
+    lines.push("    },");
+  });
+  lines.push("}");
+  lines.push("");
+  lines.push("local fonts = {}");
+  lines.push("local function useFont(size)");
+  lines.push("    size = math.floor(size or 18)");
+  lines.push("    if not fonts[size] then");
+  lines.push("        fonts[size] = render.createFont(\"Arial\", size, 700, true, false, false, false)");
+  lines.push("    end");
+  lines.push("    render.setFont(fonts[size])");
+  lines.push("end");
+  lines.push("");
+  lines.push("local function inside(mx, my, e)");
+  lines.push("    return mx and my and mx >= e.x and mx <= e.x + e.w and my >= e.y and my <= e.y + e.h");
+  lines.push("end");
+  lines.push("");
+  lines.push("local lastUse = false");
+  lines.push("local function runAction(name)");
+  lines.push("    -- Put your button actions here");
+  lines.push("    print(\"Starfall UI button pressed: \" .. tostring(name))");
+  lines.push("end");
+  lines.push("");
+  lines.push("hook.add(\"render\", \"draw_exported_ui\", function()");
+  lines.push("    render.clear(Color(8, 12, 10, 255))");
+  lines.push("    local mx, my = render.cursorPos()");
+  lines.push("    local using = input.isKeyDown(KEY.E)");
+  lines.push("");
+  lines.push("    for _, e in ipairs(elements) do");
+  lines.push("        local hover = inside(mx, my, e)");
+  lines.push("        if e.type == \"text\" then");
+  lines.push("            -- Text-only element; background draws only if alpha is above 0.");
+  lines.push("            if e.bg.a and e.bg.a > 0 then");
+  lines.push("                render.setColor(e.bg)");
+  lines.push("                render.drawRect(e.x, e.y, e.w, e.h)");
+  lines.push("            end");
+  lines.push("        else");
+  lines.push("            render.setColor(e.bg)");
+  lines.push("            render.drawRect(e.x, e.y, e.w, e.h)");
+  lines.push("            if hover then");
+  lines.push("                render.setColor(Color(255, 255, 255, 40))");
+  lines.push("                render.drawRect(e.x, e.y, e.w, e.h)");
+  lines.push("            end");
+  lines.push("        end");
+  lines.push("");
+  lines.push("        useFont(e.font)");
+  lines.push("        render.setColor(e.fg)");
+  lines.push("        local tw, th = render.getTextSize(e.text)");
+  lines.push("        render.drawText(e.x + e.w / 2 - tw / 2, e.y + e.h / 2 - th / 2, e.text, 0)");
+  lines.push("");
+  lines.push("        if e.type == \"button\" and hover and using and not lastUse then");
+  lines.push("            runAction(e.action or e.name)");
+  lines.push("        end");
+  lines.push("    end");
+  lines.push("");
+  lines.push("    lastUse = using");
+  lines.push("end)");
+  document.getElementById('exportBox').value = lines.join("\n");
+}
+async function copyExport(){
+  exportLua();
+  await navigator.clipboard.writeText(document.getElementById('exportBox').value);
+  document.getElementById('copyMsg').textContent='Copied Starfall Lua export.';
+  setTimeout(()=>copyMsg.textContent='',1600);
+}
+addElement('panel');
+addElement('button');
+addElement('text');
+exportLua();
+</script>
+</body>
+</html>
