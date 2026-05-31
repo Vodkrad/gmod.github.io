@@ -1,14 +1,44 @@
+ChatGPT
+
+Image is not showing up in starfall once i put it in the hud
+
+I’ll fix the Starfall export path for images. The issue is usually that Starfall needs the image downloaded with http.get() first, then loaded with render.createMaterial("data/..." ), not just drawn directly from a web URL.
+
+Fixed the Starfall image export drawing.
+
+Use raw image links, like raw.githubusercontent.com/.../image.png, not GitHub blob links.
+
+Now we want a Border Box (Creates a square border)
+as well as Line (Creates a line)
+and if possible Circle (Creates a circle/oval)
+
+I’ll add three new drawable element types to the builder and make sure the Lua exporter outputs StarfallEx render calls for each: drawOutlinedRect, drawLine, and circle/oval drawing.
+
+I checked the StarfallEx render library names: border boxes should export as render.drawRectOutline, lines as render.drawLine, and circles as render.drawCircle / render.drawFilledCircle.
+
+Added Border Box, Line, and Circle/Oval export.
+
+It exports using StarfallEx’s render.drawRectOutline, render.drawLine, render.drawCircle, and render.drawFilledCircle.
+
+Now we need to add drag points so we can resize and move it in the studio 
+so for example the line, we can move the two points 
+a box the 4 corners like an actual paint resize system
+
+I’ll upgrade the studio canvas controls: selected boxes/images/circles get corner resize handles, lines get draggable start/end points, and the element body still moves normally.
+
+Added paint-style drag points.
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>StarfallEx UI Builder - Exports Lua</title>
+<title>StarfallEx UI Builder - Resize Handles</title>
 <style>
   :root{
     --bg:#101510; --panel:#182118; --panel2:#202b20; --line:#375337;
     --green:#67ff7a; --green2:#35cc4f; --text:#ecffef; --muted:#a9c8ad;
-    --danger:#ff5d5d; --blue:#66b7ff;
+    --danger:#ff5d5d; --blue:#66b7ff; --yellow:#ffd45c;
   }
   *{box-sizing:border-box}
   body{
@@ -71,6 +101,13 @@
   .item.borderBox{background:transparent!important; border:3px solid #67ff7a}
   .item.line{height:0!important; min-height:0; border:0; border-top:4px solid #67ff7a; transform-origin:left center}
   .item.circle{border:3px solid #67ff7a; border-radius:50%; background:rgba(103,255,122,.1)}
+  .handle{
+    position:absolute; width:10px; height:10px; background:var(--yellow); border:1px solid #000;
+    border-radius:50%; z-index:100; transform:translate(-50%,-50%); box-shadow:0 0 8px rgba(255,212,92,.8);
+  }
+  .handle.nw,.handle.se{cursor:nwse-resize}
+  .handle.ne,.handle.sw{cursor:nesw-resize}
+  .handle.lineStart,.handle.lineEnd{width:13px;height:13px;cursor:crosshair;background:#66b7ff}
   .row{display:grid; grid-template-columns:1fr 1fr; gap:8px}
   .mini{font-size:11px; color:var(--muted); line-height:1.35}
   .exportBtns{display:grid; grid-template-columns:1fr 1fr; gap:8px}
@@ -79,7 +116,7 @@
 <body>
 <header>
   <h1>StarfallEx Drag & Drop UI Builder</h1>
-  <div class="hint">Builder: HTML/JS/CSS • Export: StarfallEx Lua</div>
+  <div class="hint">Drag body to move • Drag yellow handles to resize • Lines have 2 blue points</div>
 </header>
 
 <div class="wrap">
@@ -98,7 +135,7 @@
     <button onclick="duplicateSelected()">Duplicate Selected</button>
     <button onclick="deleteSelected()">Delete Selected</button>
     <button class="danger" onclick="clearAll()">Clear All</button>
-    <p class="mini">Drag items around the 512x512 Starfall screen. Select an item to edit its properties. Lines use X/Y as start point, W as length, H as thickness, and rotation as angle.</p>
+    <p class="mini">Paint-style resizing is now built in. Boxes, buttons, text, images, border boxes, and circles get 4 corner handles. Lines get start/end drag points.</p>
   </aside>
 
   <main class="panel stagePanel">
@@ -127,7 +164,7 @@ const exportBox = document.getElementById('exportBox');
 
 let items = [];
 let selectedId = null;
-let drag = null;
+let action = null;
 let nextId = 1;
 
 function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
@@ -137,6 +174,17 @@ function colorToRGBA(hex, alpha=255){
   if(hex.length===3) hex = hex.split('').map(c=>c+c).join('');
   const n = parseInt(hex || 'ffffff',16);
   return {r:(n>>16)&255,g:(n>>8)&255,b:n&255,a:parseInt(alpha)||255};
+}
+function lineEnd(it){
+  const ang = (it.rotation || 0) * Math.PI / 180;
+  return {x: it.x + Math.cos(ang) * it.w, y: it.y + Math.sin(ang) * it.w};
+}
+function setLineFromPoints(it, x1, y1, x2, y2){
+  it.x = Math.round(clamp(x1, 0, 512));
+  it.y = Math.round(clamp(y1, 0, 512));
+  const dx = x2 - x1, dy = y2 - y1;
+  it.w = Math.round(clamp(Math.sqrt(dx*dx + dy*dy), 1, 720));
+  it.rotation = Math.round(Math.atan2(dy, dx) * 180 / Math.PI);
 }
 
 function defaultItem(type){
@@ -155,6 +203,48 @@ function addElement(type){
   items.push(it);
   selectedId = it.id;
   render();
+}
+
+function makeHandle(cls, x, y, down){
+  const h = document.createElement('div');
+  h.className = 'handle ' + cls;
+  h.style.left = x + 'px';
+  h.style.top = y + 'px';
+  h.addEventListener('mousedown', e=>{
+    e.stopPropagation();
+    down(e);
+  });
+  stage.appendChild(h);
+}
+
+function renderHandles(it){
+  if(!it || it.id !== selectedId) return;
+  if(it.type === 'line'){
+    const end = lineEnd(it);
+    makeHandle('lineStart', it.x, it.y, e=>{
+      action = {mode:'lineStart', id:it.id, endX:end.x, endY:end.y};
+    });
+    makeHandle('lineEnd', end.x, end.y, e=>{
+      action = {mode:'lineEnd', id:it.id, startX:it.x, startY:it.y};
+    });
+    return;
+  }
+
+  const corners = [
+    ['nw', it.x, it.y],
+    ['ne', it.x + it.w, it.y],
+    ['sw', it.x, it.y + it.h],
+    ['se', it.x + it.w, it.y + it.h],
+  ];
+  corners.forEach(([name,x,y])=>{
+    makeHandle(name, x, y, e=>{
+      action = {
+        mode:'resize', id:it.id, handle:name,
+        startX:e.clientX, startY:e.clientY,
+        ox:it.x, oy:it.y, ow:it.w, oh:it.h
+      };
+    });
+  });
 }
 
 function render(){
@@ -206,25 +296,73 @@ function render(){
     el.addEventListener('mousedown', e=>{
       selectedId = it.id;
       const rect = stage.getBoundingClientRect();
-      drag = {id:it.id, dx:e.clientX - rect.left - it.x, dy:e.clientY - rect.top - it.y};
+      action = {
+        mode:'move', id:it.id,
+        dx:e.clientX - rect.left - it.x,
+        dy:e.clientY - rect.top - it.y
+      };
       render();
       e.preventDefault();
     });
     stage.appendChild(el);
   });
+
+  const sel = getSelected();
+  if(sel) renderHandles(sel);
   drawProps();
 }
 
 document.addEventListener('mousemove', e=>{
-  if(!drag) return;
-  const it = items.find(i=>i.id===drag.id);
+  if(!action) return;
+  const it = items.find(i=>i.id===action.id);
   if(!it) return;
   const rect = stage.getBoundingClientRect();
-  it.x = Math.round(clamp(e.clientX - rect.left - drag.dx, 0, 512 - Math.min(it.w,512)));
-  it.y = Math.round(clamp(e.clientY - rect.top - drag.dy, 0, 512 - Math.min(Math.max(it.h,1),512)));
+  const mx = clamp(e.clientX - rect.left, 0, 512);
+  const my = clamp(e.clientY - rect.top, 0, 512);
+
+  if(action.mode === 'move'){
+    it.x = Math.round(clamp(mx - action.dx, 0, 512 - Math.min(it.w,512)));
+    it.y = Math.round(clamp(my - action.dy, 0, 512 - Math.min(Math.max(it.h,1),512)));
+  }
+
+  if(action.mode === 'resize'){
+    const minSize = 8;
+    let left = action.ox;
+    let top = action.oy;
+    let right = action.ox + action.ow;
+    let bottom = action.oy + action.oh;
+
+    if(action.handle.includes('w')) left = mx;
+    if(action.handle.includes('e')) right = mx;
+    if(action.handle.includes('n')) top = my;
+    if(action.handle.includes('s')) bottom = my;
+
+    if(right - left < minSize){
+      if(action.handle.includes('w')) left = right - minSize;
+      else right = left + minSize;
+    }
+    if(bottom - top < minSize){
+      if(action.handle.includes('n')) top = bottom - minSize;
+      else bottom = top + minSize;
+    }
+
+    it.x = Math.round(clamp(left,0,512-minSize));
+    it.y = Math.round(clamp(top,0,512-minSize));
+    it.w = Math.round(clamp(right - left, minSize, 512 - it.x));
+    it.h = Math.round(clamp(bottom - top, minSize, 512 - it.y));
+  }
+
+  if(action.mode === 'lineStart'){
+    setLineFromPoints(it, mx, my, action.endX, action.endY);
+  }
+
+  if(action.mode === 'lineEnd'){
+    setLineFromPoints(it, action.startX, action.startY, mx, my);
+  }
+
   render();
 });
-document.addEventListener('mouseup', ()=> drag=null);
+document.addEventListener('mouseup', ()=> action=null);
 
 stage.addEventListener('mousedown', e=>{
   if(e.target === stage){ selectedId = null; render(); }
@@ -290,7 +428,7 @@ function duplicateSelected(){
 function clearAll(){
   items = [];
   selectedId = null;
-  drag = null;
+  action = null;
   nextId = 1;
   exportBox.value = '';
   render();
@@ -323,12 +461,9 @@ function exportLua(){
     } else if(it.type === 'borderBox'){
       draw.push(`    ${colorLine}\n    render.drawRectOutline(${Math.round(it.x)}, ${Math.round(it.y)}, ${Math.round(it.w)}, ${Math.round(it.h)}, ${Math.round(it.border||2)})`);
     } else if(it.type === 'line'){
-      const len = it.w;
-      const ang = (it.rotation || 0) * Math.PI / 180;
-      const x2 = Math.round(it.x + Math.cos(ang) * len);
-      const y2 = Math.round(it.y + Math.sin(ang) * len);
+      const end = lineEnd(it);
       const thickness = Math.max(1, Math.round(it.border || it.h || 1));
-      draw.push(`    ${colorLine}\n    -- Thick line made from multiple render.drawLine calls\n    for i = 0, ${thickness-1} do\n        render.drawLine(${Math.round(it.x)}, ${Math.round(it.y)} + i, ${x2}, ${y2} + i)\n    end`);
+      draw.push(`    ${colorLine}\n    -- Thick line made from multiple render.drawLine calls\n    for i = 0, ${thickness-1} do\n        render.drawLine(${Math.round(it.x)}, ${Math.round(it.y)} + i, ${Math.round(end.x)}, ${Math.round(end.y)} + i)\n    end`);
     } else if(it.type === 'circle'){
       const cx = Math.round(it.x + it.w/2);
       const cy = Math.round(it.y + it.h/2);
@@ -382,3 +517,5 @@ render();
 </script>
 </body>
 </html>
+
+
