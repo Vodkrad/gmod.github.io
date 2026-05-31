@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>StarfallEx UI Builder - Exports Lua</title>
+<style>
+  :root{
+    --bg:#101510; --panel:#182118; --panel2:#202b20; --line:#375337;
+    --green:#67ff7a; --green2:#35cc4f; --text:#ecffef; --muted:#a9c8ad;
+    --danger:#ff5d5d; --blue:#66b7ff;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:linear-gradient(135deg,#091009,#182518);
+    color:var(--text); font-family:Arial, Helvetica, sans-serif; overflow:hidden;
+  }
+  header{
+    height:52px; display:flex; align-items:center; justify-content:space-between;
+    padding:0 16px; background:#0b120b; border-bottom:1px solid var(--line);
+  }
+  header h1{font-size:18px; margin:0; color:var(--green); letter-spacing:.5px}
+  header .hint{color:var(--muted); font-size:12px}
+  .wrap{display:grid; grid-template-columns:260px 1fr 360px; gap:10px; height:calc(100vh - 52px); padding:10px}
+  .panel{
+    background:rgba(20,30,20,.95); border:1px solid var(--line); border-radius:14px;
+    padding:12px; overflow:auto; box-shadow:0 8px 28px rgba(0,0,0,.35);
+  }
+  .panel h2{font-size:15px; margin:0 0 10px; color:var(--green)}
+  button, input, select, textarea{
+    font-family:inherit; border-radius:10px; border:1px solid var(--line);
+    background:#101810; color:var(--text); padding:9px; outline:none;
+  }
+  button{
+    cursor:pointer; background:#1a2b1a; color:var(--green); font-weight:bold;
+    margin:4px 0; width:100%; transition:.12s;
+  }
+  button:hover{background:#244224; transform:translateY(-1px)}
+  button.danger{color:#ffdede; background:#351616; border-color:#713232}
+  button.danger:hover{background:#4a1d1d}
+  label{display:block; color:var(--muted); font-size:12px; margin:9px 0 4px}
+  input, select, textarea{width:100%; background:#0c120c}
+  textarea{min-height:160px; resize:vertical; font-family:Consolas, monospace; font-size:12px}
+  .toolgrid{display:grid; grid-template-columns:1fr 1fr; gap:6px}
+  .stagePanel{display:flex; align-items:center; justify-content:center; overflow:auto}
+  #stageWrap{
+    width:640px; height:640px; background:#080b08; border-radius:14px; padding:18px;
+    border:1px solid #315131; position:relative;
+  }
+  #stage{
+    width:512px; height:512px; background:
+      linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px),
+      linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),
+      #151915;
+    background-size:32px 32px; position:relative; margin:auto; overflow:hidden;
+    border:2px solid var(--green2); box-shadow:0 0 22px rgba(53,204,79,.18);
+  }
+  .item{
+    position:absolute; min-width:10px; min-height:10px; user-select:none; cursor:move;
+    border:1px dashed rgba(255,255,255,.35);
+  }
+  .item.selected{outline:2px solid var(--blue); outline-offset:2px}
+  .item .txt{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:#fff; font-weight:bold; text-shadow:0 1px 4px #000,0 0 3px #000; padding:4px;
+    overflow:hidden; text-align:center; pointer-events:none;
+  }
+  .item.text .txt{justify-content:flex-start; align-items:flex-start; color:#fff; font-size:24px}
+  .item.image{background:#222}
+  .item.image img{width:100%; height:100%; object-fit:contain; display:block; pointer-events:none}
+  .item.borderBox{background:transparent!important; border:3px solid #67ff7a}
+  .item.line{height:0!important; min-height:0; border:0; border-top:4px solid #67ff7a; transform-origin:left center}
+  .item.circle{border:3px solid #67ff7a; border-radius:50%; background:rgba(103,255,122,.1)}
+  .row{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .mini{font-size:11px; color:var(--muted); line-height:1.35}
+  .exportBtns{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>StarfallEx Drag & Drop UI Builder</h1>
+  <div class="hint">Builder: HTML/JS/CSS • Export: StarfallEx Lua</div>
+</header>
+
+<div class="wrap">
+  <aside class="panel">
+    <h2>Add Elements</h2>
+    <div class="toolgrid">
+      <button onclick="addElement('box')">Box</button>
+      <button onclick="addElement('button')">Button</button>
+      <button onclick="addElement('text')">Text</button>
+      <button onclick="addElement('image')">Image</button>
+      <button onclick="addElement('borderBox')">Border Box</button>
+      <button onclick="addElement('line')">Line</button>
+      <button onclick="addElement('circle')">Circle/Oval</button>
+    </div>
+    <hr style="border-color:#294129;border-style:solid;border-width:1px 0 0;margin:12px 0">
+    <button onclick="duplicateSelected()">Duplicate Selected</button>
+    <button onclick="deleteSelected()">Delete Selected</button>
+    <button class="danger" onclick="clearAll()">Clear All</button>
+    <p class="mini">Drag items around the 512x512 Starfall screen. Select an item to edit its properties. Lines use X/Y as start point, W as length, H as thickness, and rotation as angle.</p>
+  </aside>
+
+  <main class="panel stagePanel">
+    <div id="stageWrap"><div id="stage"></div></div>
+  </main>
+
+  <aside class="panel">
+    <h2>Properties</h2>
+    <div id="props">
+      <p class="mini">Select something on the canvas.</p>
+    </div>
+
+    <h2 style="margin-top:14px">Export</h2>
+    <div class="exportBtns">
+      <button onclick="exportLua()">Export Lua</button>
+      <button onclick="copyExport()">Copy Code</button>
+    </div>
+    <textarea id="exportBox" spellcheck="false" placeholder="Exported StarfallEx Lua appears here..."></textarea>
+  </aside>
+</div>
+
+<script>
+const stage = document.getElementById('stage');
+const props = document.getElementById('props');
+const exportBox = document.getElementById('exportBox');
+
+let items = [];
+let selectedId = null;
+let drag = null;
+let nextId = 1;
+
+function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+function escLua(s){ return String(s ?? '').replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,'\\n'); }
+function colorToRGBA(hex, alpha=255){
+  hex = (hex || '#ffffff').replace('#','');
+  if(hex.length===3) hex = hex.split('').map(c=>c+c).join('');
+  const n = parseInt(hex || 'ffffff',16);
+  return {r:(n>>16)&255,g:(n>>8)&255,b:n&255,a:parseInt(alpha)||255};
+}
+
+function defaultItem(type){
+  const base = {id:nextId++, type, x:40, y:40, w:160, h:64, label:'Label', color:'#35cc4f', textColor:'#ffffff', alpha:230, border:3, rotation:0, url:''};
+  if(type==='button') return {...base, label:'Button', color:'#1f6b2d'};
+  if(type==='text') return {...base, label:'Text', w:180, h:40, color:'#ffffff', textColor:'#ffffff', alpha:255};
+  if(type==='image') return {...base, label:'Image', w:160, h:120, color:'#222222', url:'https://raw.githubusercontent.com/Vodkrad/Garrysmod/main/Pac3s/border2.png'};
+  if(type==='borderBox') return {...base, label:'', w:180, h:120, color:'#67ff7a', alpha:255, border:4};
+  if(type==='line') return {...base, label:'', w:180, h:4, color:'#67ff7a', alpha:255, border:4};
+  if(type==='circle') return {...base, label:'', w:140, h:90, color:'#67ff7a', alpha:70, border:3, filled:false};
+  return {...base, label:'Box', color:'#263526'};
+}
+
+function addElement(type){
+  const it = defaultItem(type);
+  items.push(it);
+  selectedId = it.id;
+  render();
+}
+
+function render(){
+  stage.innerHTML = '';
+  items.forEach(it=>{
+    const el = document.createElement('div');
+    el.className = 'item ' + it.type + (it.id===selectedId ? ' selected' : '');
+    el.dataset.id = it.id;
+    el.style.left = it.x + 'px';
+    el.style.top = it.y + 'px';
+    el.style.width = it.w + 'px';
+    el.style.height = Math.max(0,it.h) + 'px';
+
+    if(it.type === 'line'){
+      el.style.width = it.w + 'px';
+      el.style.borderTopWidth = Math.max(1,it.border || it.h || 3) + 'px';
+      el.style.borderTopColor = it.color;
+      el.style.transform = `rotate(${it.rotation || 0}deg)`;
+    } else if(it.type === 'borderBox'){
+      el.style.borderWidth = Math.max(1,it.border||2) + 'px';
+      el.style.borderColor = it.color;
+    } else if(it.type === 'circle'){
+      el.style.borderWidth = Math.max(1,it.border||2) + 'px';
+      el.style.borderColor = it.color;
+      const rgba = colorToRGBA(it.color, it.alpha);
+      el.style.background = it.filled ? `rgba(${rgba.r},${rgba.g},${rgba.b},${rgba.a/255})` : 'transparent';
+    } else {
+      const rgba = colorToRGBA(it.color,it.alpha);
+      el.style.background = `rgba(${rgba.r},${rgba.g},${rgba.b},${rgba.a/255})`;
+    }
+
+    if(it.type === 'image'){
+      const img = document.createElement('img');
+      img.src = it.url || '';
+      img.onerror = () => { img.style.display='none'; el.style.background='#3a1c1c'; };
+      el.appendChild(img);
+      const t = document.createElement('div');
+      t.className = 'txt';
+      t.textContent = it.url ? '' : 'Image URL';
+      el.appendChild(t);
+    } else if(!['borderBox','line','circle'].includes(it.type)){
+      const t = document.createElement('div');
+      t.className = 'txt';
+      t.style.color = it.textColor || '#fff';
+      t.textContent = it.label || '';
+      el.appendChild(t);
+    }
+
+    el.addEventListener('mousedown', e=>{
+      selectedId = it.id;
+      const rect = stage.getBoundingClientRect();
+      drag = {id:it.id, dx:e.clientX - rect.left - it.x, dy:e.clientY - rect.top - it.y};
+      render();
+      e.preventDefault();
+    });
+    stage.appendChild(el);
+  });
+  drawProps();
+}
+
+document.addEventListener('mousemove', e=>{
+  if(!drag) return;
+  const it = items.find(i=>i.id===drag.id);
+  if(!it) return;
+  const rect = stage.getBoundingClientRect();
+  it.x = Math.round(clamp(e.clientX - rect.left - drag.dx, 0, 512 - Math.min(it.w,512)));
+  it.y = Math.round(clamp(e.clientY - rect.top - drag.dy, 0, 512 - Math.min(Math.max(it.h,1),512)));
+  render();
+});
+document.addEventListener('mouseup', ()=> drag=null);
+
+stage.addEventListener('mousedown', e=>{
+  if(e.target === stage){ selectedId = null; render(); }
+});
+
+function getSelected(){ return items.find(i=>i.id===selectedId); }
+
+function drawProps(){
+  const it = getSelected();
+  if(!it){ props.innerHTML = '<p class="mini">Select something on the canvas.</p>'; return; }
+  const isShape = ['borderBox','line','circle'].includes(it.type);
+  props.innerHTML = `
+    <label>Type</label><input value="${it.type}" disabled>
+    ${!isShape || it.type==='text' ? `<label>Label/Text</label><input id="p_label" value="${String(it.label||'').replace(/"/g,'&quot;')}">` : ''}
+    ${it.type==='image' ? `<label>Image URL (.png .jpg .jpeg .webp)</label><input id="p_url" value="${String(it.url||'').replace(/"/g,'&quot;')}">` : ''}
+    <div class="row">
+      <div><label>X</label><input id="p_x" type="number" value="${it.x}"></div>
+      <div><label>Y</label><input id="p_y" type="number" value="${it.y}"></div>
+    </div>
+    <div class="row">
+      <div><label>Width / Line Length</label><input id="p_w" type="number" value="${it.w}"></div>
+      <div><label>Height</label><input id="p_h" type="number" value="${it.h}"></div>
+    </div>
+    <label>Color</label><input id="p_color" type="color" value="${it.color}">
+    ${(!isShape && it.type!=='image') ? `<label>Text Color</label><input id="p_textColor" type="color" value="${it.textColor||'#ffffff'}">` : ''}
+    <div class="row">
+      <div><label>Alpha</label><input id="p_alpha" type="number" min="0" max="255" value="${it.alpha}"></div>
+      <div><label>Border/Line Thickness</label><input id="p_border" type="number" min="1" max="50" value="${it.border||3}"></div>
+    </div>
+    ${it.type==='line' ? `<label>Line Rotation</label><input id="p_rotation" type="number" value="${it.rotation||0}">` : ''}
+    ${it.type==='circle' ? `<label><input id="p_filled" type="checkbox" ${it.filled?'checked':''} style="width:auto"> Filled Circle/Oval</label>` : ''}
+  `;
+  bindProp('p_label','label');
+  bindProp('p_url','url');
+  bindNum('p_x','x',0,512); bindNum('p_y','y',0,512);
+  bindNum('p_w','w',1,512); bindNum('p_h','h',0,512);
+  bindProp('p_color','color'); bindProp('p_textColor','textColor');
+  bindNum('p_alpha','alpha',0,255); bindNum('p_border','border',1,50);
+  bindNum('p_rotation','rotation',-360,360);
+  const filled = document.getElementById('p_filled');
+  if(filled) filled.oninput = ()=>{ it.filled = filled.checked; render(); };
+}
+function bindProp(id,key){
+  const el=document.getElementById(id); if(!el) return;
+  el.oninput=()=>{ const it=getSelected(); if(!it)return; it[key]=el.value; render(); };
+}
+function bindNum(id,key,min,max){
+  const el=document.getElementById(id); if(!el) return;
+  el.oninput=()=>{ const it=getSelected(); if(!it)return; it[key]=clamp(parseFloat(el.value)||0,min,max); render(); };
+}
+
+function deleteSelected(){
+  if(selectedId == null) return;
+  items = items.filter(i=>i.id!==selectedId);
+  selectedId = null;
+  render();
+}
+function duplicateSelected(){
+  const it = getSelected(); if(!it) return;
+  const copy = {...it, id:nextId++, x:clamp(it.x+16,0,500), y:clamp(it.y+16,0,500)};
+  items.push(copy); selectedId = copy.id; render();
+}
+function clearAll(){
+  items = [];
+  selectedId = null;
+  drag = null;
+  nextId = 1;
+  exportBox.value = '';
+  render();
+}
+
+function exportLua(){
+  let imageDecl = '';
+  let imageDraw = '';
+  let draw = [];
+
+  items.forEach((it, idx)=>{
+    const c = colorToRGBA(it.color, it.alpha);
+    const tc = colorToRGBA(it.textColor || '#ffffff', 255);
+    const colorLine = `render.setColor(Color(${c.r}, ${c.g}, ${c.b}, ${c.a}))`;
+
+    if(it.type === 'image'){
+      const name = `img${idx+1}`;
+      imageDecl += `local ${name} = render.createMaterial("${escLua(it.url)}")\n`;
+      imageDraw += `    if ${name} then\n        render.setColor(Color(255, 255, 255, 255))\n        render.setMaterial(${name})\n        render.drawTexturedRect(${Math.round(it.x)}, ${Math.round(it.y)}, ${Math.round(it.w)}, ${Math.round(it.h)})\n        render.setMaterial(nil)\n    end\n`;
+      return;
+    }
+
+    if(it.type === 'box' || it.type === 'button'){
+      draw.push(`    ${colorLine}\n    render.drawRect(${Math.round(it.x)}, ${Math.round(it.y)}, ${Math.round(it.w)}, ${Math.round(it.h)})`);
+      if(it.label){
+        draw.push(`    render.setColor(Color(${tc.r}, ${tc.g}, ${tc.b}, 255))\n    render.drawText(${Math.round(it.x + it.w/2)}, ${Math.round(it.y + it.h/2 - 10)}, "${escLua(it.label)}", 1)`);
+      }
+    } else if(it.type === 'text'){
+      draw.push(`    render.setColor(Color(${tc.r}, ${tc.g}, ${tc.b}, 255))\n    render.drawText(${Math.round(it.x)}, ${Math.round(it.y)}, "${escLua(it.label)}", 0)`);
+    } else if(it.type === 'borderBox'){
+      draw.push(`    ${colorLine}\n    render.drawRectOutline(${Math.round(it.x)}, ${Math.round(it.y)}, ${Math.round(it.w)}, ${Math.round(it.h)}, ${Math.round(it.border||2)})`);
+    } else if(it.type === 'line'){
+      const len = it.w;
+      const ang = (it.rotation || 0) * Math.PI / 180;
+      const x2 = Math.round(it.x + Math.cos(ang) * len);
+      const y2 = Math.round(it.y + Math.sin(ang) * len);
+      const thickness = Math.max(1, Math.round(it.border || it.h || 1));
+      draw.push(`    ${colorLine}\n    -- Thick line made from multiple render.drawLine calls\n    for i = 0, ${thickness-1} do\n        render.drawLine(${Math.round(it.x)}, ${Math.round(it.y)} + i, ${x2}, ${y2} + i)\n    end`);
+    } else if(it.type === 'circle'){
+      const cx = Math.round(it.x + it.w/2);
+      const cy = Math.round(it.y + it.h/2);
+      const rx = Math.round(it.w/2);
+      const ry = Math.round(it.h/2);
+      const thick = Math.max(1, Math.round(it.border||2));
+      if(Math.abs(rx-ry) <= 2){
+        if(it.filled){
+          draw.push(`    ${colorLine}\n    render.drawFilledCircle(${cx}, ${cy}, ${Math.max(1,rx)})`);
+        } else {
+          draw.push(`    ${colorLine}\n    for r = ${Math.max(1,rx)}, ${Math.max(1,rx)+thick-1} do\n        render.drawCircle(${cx}, ${cy}, r)\n    end`);
+        }
+      } else {
+        draw.push(`    ${colorLine}\n    -- Oval approximation using lines\n    local cx, cy = ${cx}, ${cy}\n    local rx, ry = ${Math.max(1,rx)}, ${Math.max(1,ry)}\n    local lastX, lastY = cx + rx, cy\n    for a = 1, 360 do\n        local rad = math.rad(a)\n        local x = cx + math.cos(rad) * rx\n        local y = cy + math.sin(rad) * ry\n        render.drawLine(lastX, lastY, x, y)\n        lastX, lastY = x, y\n    end`);
+      }
+    }
+  });
+
+  const lua = `--@name Exported UI
+--@author StarfallEx UI Builder
+--@client
+
+-- StarfallEx screen/HUD UI export.
+-- Screens use 512x512 units.
+
+${imageDecl}
+hook.add("render", "draw_exported_ui", function()
+${imageDraw}${draw.join("\n")}
+end)
+`;
+  exportBox.value = lua;
+}
+
+function copyExport(){
+  if(!exportBox.value) exportLua();
+  exportBox.select();
+  document.execCommand('copy');
+}
+
+addElement('box');
+items[0].label = 'Example Box';
+items[0].x = 40; items[0].y = 40;
+addElement('borderBox');
+items[1].x = 260; items[1].y = 40;
+addElement('line');
+items[2].x = 60; items[2].y = 180; items[2].rotation = 15;
+addElement('circle');
+items[3].x = 280; items[3].y = 170;
+selectedId = null;
+render();
+</script>
+</body>
+</html>
