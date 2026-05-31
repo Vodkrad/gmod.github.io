@@ -33,7 +33,9 @@ textarea{height:260px;resize:none;font-family:Consolas,monospace;font-size:12px}
 .item{position:absolute;user-select:none;cursor:move;border:1px solid transparent;overflow:hidden}
 .item.selected{outline:2px solid var(--accent);box-shadow:0 0 12px #38ff8670}
 .item .handle{position:absolute;right:0;bottom:0;width:12px;height:12px;background:var(--accent);cursor:nwse-resize}
-.itemText{display:flex;align-items:center;justify-content:center;width:100%;height:100%;white-space:pre-wrap;text-align:center}
+.itemText{display:flex;align-items:center;justify-content:center;width:100%;height:100%;white-space:pre-wrap;text-align:center;position:relative;z-index:2}
+.itemImg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:1}
+.item.imageItem{background-size:contain;background-repeat:no-repeat;background-position:center}
 .small{font-size:12px;color:var(--muted)}
 .list{display:flex;flex-direction:column;gap:6px;max-height:170px;overflow:auto}
 .layer{padding:7px;border:1px solid #254934;border-radius:8px;background:#0c1510;cursor:pointer}
@@ -49,7 +51,7 @@ textarea{height:260px;resize:none;font-family:Consolas,monospace;font-size:12px}
       <button onclick="addElement('panel')" style="width:100%">+ Panel / Box</button>
       <button onclick="addElement('button')" style="width:100%">+ Button</button>
       <button onclick="addElement('text')" style="width:100%">+ Text</button>
-      <button onclick="addElement('image')" style="width:100%">+ Image Placeholder</button>
+      <button onclick="addElement('image')" style="width:100%">+ Image URL</button>
       <hr style="border-color:#244131;border-style:solid none none;margin:14px 0">
       <button class="secondary" onclick="duplicateSelected()" style="width:100%">Duplicate Selected</button>
       <button class="danger" onclick="deleteSelected()" style="width:100%">Delete Selected</button>
@@ -87,6 +89,7 @@ textarea{height:260px;resize:none;font-family:Consolas,monospace;font-size:12px}
           <div><label>H</label><input id="pH" type="number" oninput="updateProp('h',+this.value)"></div>
         </div>
         <label>Text</label><input id="pText" oninput="updateProp('text',this.value)">
+        <label>Image URL (.png / .jpg / .jpeg / .webp)</label><input id="pUrl" oninput="updateProp('url',this.value)" placeholder="https://example.com/image.png">
         <div class="row">
           <div><label>Background</label><input id="pBg" type="color" oninput="updateProp('bg',this.value)"></div>
           <div><label>Text Color</label><input id="pFg" type="color" oninput="updateProp('fg',this.value)"></div>
@@ -127,7 +130,7 @@ function addElement(type){
     panel:{w:180,h:90,text:'Panel',bg:'#163523',fg:'#d8ffe8',font:18,alpha:220},
     button:{w:150,h:45,text:'Button',bg:'#38ff86',fg:'#031008',font:18,alpha:255,action:'buttonClicked'},
     text:{w:180,h:35,text:'Text Label',bg:'#000000',fg:'#d8ffe8',font:22,alpha:0},
-    image:{w:160,h:110,text:'Image',bg:'#263b31',fg:'#d8ffe8',font:16,alpha:180}
+    image:{w:160,h:110,text:'Image',bg:'#263b31',fg:'#d8ffe8',font:16,alpha:180,url:''}
   }[type];
   const el = {id:idCounter++, type, name:type+"_"+idCounter, x:40+elements.length*12, y:40+elements.length*12, ...defaults};
   elements.push(el);
@@ -146,7 +149,14 @@ function render(){
     d.style.opacity = '1';
     d.style.textShadow = '0 1px 3px rgba(0,0,0,.9)';
     d.dataset.id = el.id;
-    d.innerHTML = `<div class="itemText" style="font-size:${el.font}px">${escapeHtml(el.text)}</div><div class="handle"></div>`;
+    if(el.type === 'image'){
+      d.classList.add('imageItem');
+      const safeUrl = isImageUrl(el.url) ? escapeHtml(el.url) : '';
+      const label = el.text && !safeUrl ? escapeHtml(el.text) : '';
+      d.innerHTML = `${safeUrl ? `<img class="itemImg" src="${safeUrl}" alt="" onerror="this.style.display='none'; this.parentElement.querySelector('.itemText').textContent='Image failed to load';">` : ''}<div class="itemText" style="font-size:${el.font}px">${label}</div><div class="handle"></div>`;
+    } else {
+      d.innerHTML = `<div class="itemText" style="font-size:${el.font}px">${escapeHtml(el.text)}</div><div class="handle"></div>`;
+    }
     d.addEventListener('mousedown', startDrag);
     d.querySelector('.handle').addEventListener('mousedown', startResize);
     stage.appendChild(d);
@@ -155,6 +165,7 @@ function render(){
   syncProps();
 }
 function escapeHtml(s){return String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
+function isImageUrl(url){return /^https?:\/\/.+\.(png|jpe?g|webp)(\?.*)?$/i.test(String(url||'').trim());}
 function renderLayers(){
   const box=document.getElementById('layers'); box.innerHTML='';
   elements.slice().reverse().forEach(el=>{
@@ -206,7 +217,7 @@ function syncProps(){
   document.getElementById('propsEmpty').style.display=el?'none':'block';
   if(!el)return;
   pName.value=el.name; pType.value=el.type; pX.value=el.x; pY.value=el.y; pW.value=el.w; pH.value=el.h;
-  pText.value=el.text; pBg.value=el.bg; pFg.value=el.fg; pAlpha.value=el.alpha; pFont.value=el.font; pAction.value=el.action||'';
+  pText.value=el.text; pUrl.value=el.url||''; pBg.value=el.bg; pFg.value=el.fg; pAlpha.value=el.alpha; pFont.value=el.font; pAction.value=el.action||'';
 }
 function updateProp(k,v){
   const el=getSelected(); if(!el)return;
@@ -242,7 +253,8 @@ function exportLua(){
   lines.push("--@client");
   lines.push("");
   lines.push("-- Link this chip to a Starfall screen.");
-  lines.push("-- Screens are 512x512 units in StarfallEx render.");
+  lines.push("-- Image URLs must be direct links ending in .png/.jpg/.jpeg/.webp and allowed by the server URL whitelist.");
+  lines.push("-- GitHub links must use raw.githubusercontent.com, not github.com/blob.");
   lines.push("");
   lines.push("local white = Color(255, 255, 255, 255)");
   lines.push("local elements = {");
@@ -255,10 +267,28 @@ function exportLua(){
     lines.push(`        text = ${luaString(el.text)}, font = ${Math.round(el.font)},`);
     lines.push(`        bg = Color(${bg.r}, ${bg.g}, ${bg.b}, ${Math.round(el.alpha)}),`);
     lines.push(`        fg = Color(${fg.r}, ${fg.g}, ${fg.b}, 255),`);
+    if(el.type === 'image') lines.push(`        url = ${luaString(el.url || '')},`);
     if(action) lines.push(`        action = ${luaString(action)},`);
     lines.push("    },");
   });
   lines.push("}");
+  lines.push("");
+  lines.push("local imageMaterials = {}");
+  lines.push("local imageErrors = {}");
+  lines.push("");
+  lines.push("local function loadImage(url)");
+  lines.push("    if not url or url == \"\" then return nil end");
+  lines.push("    if imageMaterials[url] then return imageMaterials[url] end");
+  lines.push("    if imageErrors[url] then return nil end");
+  lines.push("    local ok, mat = pcall(render.createMaterial, url)");
+  lines.push("    if ok and mat then");
+  lines.push("        imageMaterials[url] = mat");
+  lines.push("        return mat");
+  lines.push("    end");
+  lines.push("    imageErrors[url] = tostring(mat)");
+  lines.push("    print(\"Image failed to load: \" .. tostring(url) .. \" | \" .. tostring(mat))");
+  lines.push("    return nil");
+  lines.push("end");
   lines.push("");
   lines.push("local fonts = {}");
   lines.push("local function useFont(size)");
@@ -286,8 +316,18 @@ function exportLua(){
   lines.push("");
   lines.push("    for _, e in ipairs(elements) do");
   lines.push("        local hover = inside(mx, my, e)");
-  lines.push("        if e.type == \"text\" then");
-  lines.push("            -- Text-only element; background draws only if alpha is above 0.");
+  lines.push("");
+  lines.push("        if e.type == \"image\" then");
+  lines.push("            local mat = loadImage(e.url)");
+  lines.push("            if mat then");
+  lines.push("                render.setColor(white)");
+  lines.push("                render.setMaterial(mat)");
+  lines.push("                render.drawTexturedRect(e.x, e.y, e.w, e.h)");
+  lines.push("            else");
+  lines.push("                render.setColor(e.bg)");
+  lines.push("                render.drawRect(e.x, e.y, e.w, e.h)");
+  lines.push("            end");
+  lines.push("        elseif e.type == \"text\" then");
   lines.push("            if e.bg.a and e.bg.a > 0 then");
   lines.push("                render.setColor(e.bg)");
   lines.push("                render.drawRect(e.x, e.y, e.w, e.h)");
@@ -295,16 +335,19 @@ function exportLua(){
   lines.push("        else");
   lines.push("            render.setColor(e.bg)");
   lines.push("            render.drawRect(e.x, e.y, e.w, e.h)");
-  lines.push("            if hover then");
-  lines.push("                render.setColor(Color(255, 255, 255, 40))");
-  lines.push("                render.drawRect(e.x, e.y, e.w, e.h)");
-  lines.push("            end");
   lines.push("        end");
   lines.push("");
-  lines.push("        useFont(e.font)");
-  lines.push("        render.setColor(e.fg)");
-  lines.push("        local tw, th = render.getTextSize(e.text)");
-  lines.push("        render.drawText(e.x + e.w / 2 - tw / 2, e.y + e.h / 2 - th / 2, e.text, 0)");
+  lines.push("        if hover then");
+  lines.push("            render.setColor(Color(255, 255, 255, 40))");
+  lines.push("            render.drawRect(e.x, e.y, e.w, e.h)");
+  lines.push("        end");
+  lines.push("");
+  lines.push("        if e.text and e.text ~= \"\" and e.type ~= \"image\" then");
+  lines.push("            useFont(e.font)");
+  lines.push("            render.setColor(e.fg)");
+  lines.push("            local tw, th = render.getTextSize(e.text)");
+  lines.push("            render.drawText(e.x + e.w / 2 - tw / 2, e.y + e.h / 2 - th / 2, e.text, 0)");
+  lines.push("        end");
   lines.push("");
   lines.push("        if e.type == \"button\" and hover and using and not lastUse then");
   lines.push("            runAction(e.action or e.name)");
