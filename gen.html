@@ -2,372 +2,383 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>StarfallEx UI Creator - Lua Exporter</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>StarfallEx UI Builder - Exports Lua</title>
 <style>
-:root{
-  --bg:#0b1210; --panel:#111d18; --panel2:#172820; --text:#d8ffe8; --muted:#8cba9f;
-  --accent:#38ff86; --accent2:#1fbf63; --danger:#ff4d6d; --line:#244131;
-}
-*{box-sizing:border-box}
-body{margin:0;background:radial-gradient(circle at top,#13231b,#050806 70%);color:var(--text);font-family:Arial,Helvetica,sans-serif;height:100vh;overflow:hidden}
-.app{display:grid;grid-template-columns:260px 1fr 380px;height:100vh;gap:10px;padding:10px}
-.panel{background:rgba(17,29,24,.96);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 30px #0008;overflow:hidden}
-.panel h2{font-size:16px;margin:0;padding:13px 14px;border-bottom:1px solid var(--line);background:#0d1712;color:var(--accent)}
-.panel .body{padding:12px}
-button,input,select,textarea{font:inherit}
-button{background:linear-gradient(#28d977,#149c4e);border:0;color:#031008;font-weight:800;border-radius:10px;padding:9px 10px;cursor:pointer;margin:4px 0}
-button:hover{filter:brightness(1.12)}
-button.secondary{background:#203a2c;color:var(--text);border:1px solid #315b43}
-button.danger{background:linear-gradient(#ff6680,#c51f43);color:white}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-label{display:block;font-size:12px;color:var(--muted);margin-top:8px}
-input,select,textarea{width:100%;background:#08100c;color:var(--text);border:1px solid #315b43;border-radius:9px;padding:8px;outline:none}
-textarea{height:260px;resize:none;font-family:Consolas,monospace;font-size:12px}
-.stageWrap{display:flex;align-items:center;justify-content:center;min-width:0}
-.stagePanel{display:flex;flex-direction:column;height:100%}
-.toolbar{padding:9px 12px;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.canvasOuter{flex:1;display:flex;align-items:center;justify-content:center;overflow:auto;padding:15px}
-#stage{position:relative;width:512px;height:512px;background:#111;border:3px solid #315b43;box-shadow:0 0 0 8px #050806,0 10px 40px #000;transform-origin:center}
-.grid{background-image:linear-gradient(to right,rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(to bottom,rgba(255,255,255,.06) 1px,transparent 1px);background-size:32px 32px}
-.item{position:absolute;user-select:none;cursor:move;border:1px solid transparent;overflow:hidden}
-.item.selected{outline:2px solid var(--accent);box-shadow:0 0 12px #38ff8670}
-.item .handle{position:absolute;right:0;bottom:0;width:12px;height:12px;background:var(--accent);cursor:nwse-resize}
-.itemText{display:flex;align-items:center;justify-content:center;width:100%;height:100%;white-space:pre-wrap;text-align:center;position:relative;z-index:2}
-.itemImg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:1}
-.item.imageItem{background-size:contain;background-repeat:no-repeat;background-position:center}
-.small{font-size:12px;color:var(--muted)}
-.list{display:flex;flex-direction:column;gap:6px;max-height:170px;overflow:auto}
-.layer{padding:7px;border:1px solid #254934;border-radius:8px;background:#0c1510;cursor:pointer}
-.layer.active{border-color:var(--accent);color:var(--accent)}
-.copyMsg{font-size:12px;color:var(--accent);min-height:18px}
+  :root{
+    --bg:#101510; --panel:#182118; --panel2:#202b20; --line:#375337;
+    --green:#67ff7a; --green2:#35cc4f; --text:#ecffef; --muted:#a9c8ad;
+    --danger:#ff5d5d; --blue:#66b7ff;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:linear-gradient(135deg,#091009,#182518);
+    color:var(--text); font-family:Arial, Helvetica, sans-serif; overflow:hidden;
+  }
+  header{
+    height:52px; display:flex; align-items:center; justify-content:space-between;
+    padding:0 16px; background:#0b120b; border-bottom:1px solid var(--line);
+  }
+  header h1{font-size:18px; margin:0; color:var(--green); letter-spacing:.5px}
+  header .hint{color:var(--muted); font-size:12px}
+  .wrap{display:grid; grid-template-columns:260px 1fr 360px; gap:10px; height:calc(100vh - 52px); padding:10px}
+  .panel{
+    background:rgba(20,30,20,.95); border:1px solid var(--line); border-radius:14px;
+    padding:12px; overflow:auto; box-shadow:0 8px 28px rgba(0,0,0,.35);
+  }
+  .panel h2{font-size:15px; margin:0 0 10px; color:var(--green)}
+  button, input, select, textarea{
+    font-family:inherit; border-radius:10px; border:1px solid var(--line);
+    background:#101810; color:var(--text); padding:9px; outline:none;
+  }
+  button{
+    cursor:pointer; background:#1a2b1a; color:var(--green); font-weight:bold;
+    margin:4px 0; width:100%; transition:.12s;
+  }
+  button:hover{background:#244224; transform:translateY(-1px)}
+  button.danger{color:#ffdede; background:#351616; border-color:#713232}
+  button.danger:hover{background:#4a1d1d}
+  label{display:block; color:var(--muted); font-size:12px; margin:9px 0 4px}
+  input, select, textarea{width:100%; background:#0c120c}
+  textarea{min-height:160px; resize:vertical; font-family:Consolas, monospace; font-size:12px}
+  .toolgrid{display:grid; grid-template-columns:1fr 1fr; gap:6px}
+  .stagePanel{display:flex; align-items:center; justify-content:center; overflow:auto}
+  #stageWrap{
+    width:640px; height:640px; background:#080b08; border-radius:14px; padding:18px;
+    border:1px solid #315131; position:relative;
+  }
+  #stage{
+    width:512px; height:512px; background:
+      linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px),
+      linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),
+      #151915;
+    background-size:32px 32px; position:relative; margin:auto; overflow:hidden;
+    border:2px solid var(--green2); box-shadow:0 0 22px rgba(53,204,79,.18);
+  }
+  .item{
+    position:absolute; min-width:10px; min-height:10px; user-select:none; cursor:move;
+    border:1px dashed rgba(255,255,255,.35);
+  }
+  .item.selected{outline:2px solid var(--blue); outline-offset:2px}
+  .item .txt{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:#fff; font-weight:bold; text-shadow:0 1px 4px #000,0 0 3px #000; padding:4px;
+    overflow:hidden; text-align:center; pointer-events:none;
+  }
+  .item.text .txt{justify-content:flex-start; align-items:flex-start; color:#fff; font-size:24px}
+  .item.image{background:#222}
+  .item.image img{width:100%; height:100%; object-fit:contain; display:block; pointer-events:none}
+  .item.borderBox{background:transparent!important; border:3px solid #67ff7a}
+  .item.line{height:0!important; min-height:0; border:0; border-top:4px solid #67ff7a; transform-origin:left center}
+  .item.circle{border:3px solid #67ff7a; border-radius:50%; background:rgba(103,255,122,.1)}
+  .row{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .mini{font-size:11px; color:var(--muted); line-height:1.35}
+  .exportBtns{display:grid; grid-template-columns:1fr 1fr; gap:8px}
 </style>
 </head>
 <body>
-<div class="app">
-  <section class="panel">
-    <h2>Elements</h2>
-    <div class="body">
-      <button onclick="addElement('panel')" style="width:100%">+ Panel / Box</button>
-      <button onclick="addElement('button')" style="width:100%">+ Button</button>
-      <button onclick="addElement('text')" style="width:100%">+ Text</button>
-      <button onclick="addElement('image')" style="width:100%">+ Image URL</button>
-      <hr style="border-color:#244131;border-style:solid none none;margin:14px 0">
-      <button class="secondary" onclick="duplicateSelected()" style="width:100%">Duplicate Selected</button>
-      <button class="danger" onclick="deleteSelected()" style="width:100%">Delete Selected</button>
-      <button class="secondary" onclick="clearAll()" style="width:100%">Clear All</button>
-      <p class="small">Drag elements around the 512x512 Starfall screen. Resize from the green corner.</p>
-      <h2 style="margin:14px -12px 8px">Layers</h2>
-      <div id="layers" class="list"></div>
-    </div>
-  </section>
+<header>
+  <h1>StarfallEx Drag & Drop UI Builder</h1>
+  <div class="hint">Builder: HTML/JS/CSS • Export: StarfallEx Lua</div>
+</header>
 
-  <section class="panel stagePanel">
-    <div class="toolbar">
-      <strong style="color:var(--accent)">StarfallEx Screen UI Builder</strong>
-      <button class="secondary" onclick="toggleGrid()">Grid</button>
-      <button class="secondary" onclick="exportLua()">Export Starfall Lua</button>
-      <button class="secondary" onclick="copyExport()">Copy Export</button>
-      <span class="small">Exports standalone `--@client` Lua.</span>
+<div class="wrap">
+  <aside class="panel">
+    <h2>Add Elements</h2>
+    <div class="toolgrid">
+      <button onclick="addElement('box')">Box</button>
+      <button onclick="addElement('button')">Button</button>
+      <button onclick="addElement('text')">Text</button>
+      <button onclick="addElement('image')">Image</button>
+      <button onclick="addElement('borderBox')">Border Box</button>
+      <button onclick="addElement('line')">Line</button>
+      <button onclick="addElement('circle')">Circle/Oval</button>
     </div>
-    <div class="canvasOuter">
-      <div id="stage" class="grid"></div>
-    </div>
-  </section>
+    <hr style="border-color:#294129;border-style:solid;border-width:1px 0 0;margin:12px 0">
+    <button onclick="duplicateSelected()">Duplicate Selected</button>
+    <button onclick="deleteSelected()">Delete Selected</button>
+    <button class="danger" onclick="clearAll()">Clear All</button>
+    <p class="mini">Drag items around the 512x512 Starfall screen. Select an item to edit its properties. Lines use X/Y as start point, W as length, H as thickness, and rotation as angle.</p>
+  </aside>
 
-  <section class="panel">
+  <main class="panel stagePanel">
+    <div id="stageWrap"><div id="stage"></div></div>
+  </main>
+
+  <aside class="panel">
     <h2>Properties</h2>
-    <div class="body">
-      <div id="propsEmpty" class="small">Select an element to edit it.</div>
-      <div id="props" style="display:none">
-        <label>Name</label><input id="pName" oninput="updateProp('name',this.value)">
-        <label>Type</label><input id="pType" disabled>
-        <div class="row">
-          <div><label>X</label><input id="pX" type="number" oninput="updateProp('x',+this.value)"></div>
-          <div><label>Y</label><input id="pY" type="number" oninput="updateProp('y',+this.value)"></div>
-          <div><label>W</label><input id="pW" type="number" oninput="updateProp('w',+this.value)"></div>
-          <div><label>H</label><input id="pH" type="number" oninput="updateProp('h',+this.value)"></div>
-        </div>
-        <label>Text</label><input id="pText" oninput="updateProp('text',this.value)">
-        <label>Image URL (.png / .jpg / .jpeg / .webp)</label><input id="pUrl" oninput="updateProp('url',this.value)" placeholder="https://example.com/image.png">
-        <div class="row">
-          <div><label>Background</label><input id="pBg" type="color" oninput="updateProp('bg',this.value)"></div>
-          <div><label>Text Color</label><input id="pFg" type="color" oninput="updateProp('fg',this.value)"></div>
-        </div>
-        <div class="row">
-          <div><label>Alpha</label><input id="pAlpha" type="number" min="0" max="255" oninput="updateProp('alpha',+this.value)"></div>
-          <div><label>Font Size</label><input id="pFont" type="number" min="8" max="60" oninput="updateProp('font',+this.value)"></div>
-        </div>
-        <label>Button Action Name</label><input id="pAction" oninput="updateProp('action',this.value)" placeholder="example: openPage">
-      </div>
-      <hr style="border-color:#244131;border-style:solid none none;margin:14px 0">
-      <h2 style="margin:0 -12px 8px">Exported Starfall Lua</h2>
-      <div class="copyMsg" id="copyMsg"></div>
-      <textarea id="exportBox" spellcheck="false"></textarea>
+    <div id="props">
+      <p class="mini">Select something on the canvas.</p>
     </div>
-  </section>
+
+    <h2 style="margin-top:14px">Export</h2>
+    <div class="exportBtns">
+      <button onclick="exportLua()">Export Lua</button>
+      <button onclick="copyExport()">Copy Code</button>
+    </div>
+    <textarea id="exportBox" spellcheck="false" placeholder="Exported StarfallEx Lua appears here..."></textarea>
+  </aside>
 </div>
 
 <script>
 const stage = document.getElementById('stage');
-let elements = [];
-let selected = null;
-let idCounter = 1;
-let dragging = null;
-let resizing = null;
+const props = document.getElementById('props');
+const exportBox = document.getElementById('exportBox');
 
-function hexToRgb(hex){
-  hex = hex.replace('#','');
-  return {
-    r:parseInt(hex.slice(0,2),16),
-    g:parseInt(hex.slice(2,4),16),
-    b:parseInt(hex.slice(4,6),16)
-  };
+let items = [];
+let selectedId = null;
+let drag = null;
+let nextId = 1;
+
+function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+function escLua(s){ return String(s ?? '').replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,'\\n'); }
+function colorToRGBA(hex, alpha=255){
+  hex = (hex || '#ffffff').replace('#','');
+  if(hex.length===3) hex = hex.split('').map(c=>c+c).join('');
+  const n = parseInt(hex || 'ffffff',16);
+  return {r:(n>>16)&255,g:(n>>8)&255,b:n&255,a:parseInt(alpha)||255};
 }
-function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
+
+function defaultItem(type){
+  const base = {id:nextId++, type, x:40, y:40, w:160, h:64, label:'Label', color:'#35cc4f', textColor:'#ffffff', alpha:230, border:3, rotation:0, url:''};
+  if(type==='button') return {...base, label:'Button', color:'#1f6b2d'};
+  if(type==='text') return {...base, label:'Text', w:180, h:40, color:'#ffffff', textColor:'#ffffff', alpha:255};
+  if(type==='image') return {...base, label:'Image', w:160, h:120, color:'#222222', url:'https://raw.githubusercontent.com/Vodkrad/Garrysmod/main/Pac3s/border2.png'};
+  if(type==='borderBox') return {...base, label:'', w:180, h:120, color:'#67ff7a', alpha:255, border:4};
+  if(type==='line') return {...base, label:'', w:180, h:4, color:'#67ff7a', alpha:255, border:4};
+  if(type==='circle') return {...base, label:'', w:140, h:90, color:'#67ff7a', alpha:70, border:3, filled:false};
+  return {...base, label:'Box', color:'#263526'};
+}
+
 function addElement(type){
-  const defaults = {
-    panel:{w:180,h:90,text:'Panel',bg:'#163523',fg:'#d8ffe8',font:18,alpha:220},
-    button:{w:150,h:45,text:'Button',bg:'#38ff86',fg:'#031008',font:18,alpha:255,action:'buttonClicked'},
-    text:{w:180,h:35,text:'Text Label',bg:'#000000',fg:'#d8ffe8',font:22,alpha:0},
-    image:{w:160,h:110,text:'Image',bg:'#263b31',fg:'#d8ffe8',font:16,alpha:180,url:''}
-  }[type];
-  const el = {id:idCounter++, type, name:type+"_"+idCounter, x:40+elements.length*12, y:40+elements.length*12, ...defaults};
-  elements.push(el);
-  selectElement(el.id);
+  const it = defaultItem(type);
+  items.push(it);
+  selectedId = it.id;
   render();
 }
+
 function render(){
   stage.innerHTML = '';
-  elements.forEach(el=>{
-    const d = document.createElement('div');
-    d.className = 'item' + (selected===el.id?' selected':'');
-    d.style.left = el.x+'px'; d.style.top = el.y+'px'; d.style.width = el.w+'px'; d.style.height = el.h+'px';
-    const rgb = hexToRgb(el.bg);
-    d.style.background = el.alpha === 0 ? 'transparent' : `rgba(${rgb.r},${rgb.g},${rgb.b},${el.alpha/255})`;
-    d.style.color = el.fg;
-    d.style.opacity = '1';
-    d.style.textShadow = '0 1px 3px rgba(0,0,0,.9)';
-    d.dataset.id = el.id;
-    if(el.type === 'image'){
-      d.classList.add('imageItem');
-      const safeUrl = isImageUrl(el.url) ? escapeHtml(el.url) : '';
-      const label = el.text && !safeUrl ? escapeHtml(el.text) : '';
-      d.innerHTML = `${safeUrl ? `<img class="itemImg" src="${safeUrl}" alt="" onerror="this.style.display='none'; this.parentElement.querySelector('.itemText').textContent='Image failed to load';">` : ''}<div class="itemText" style="font-size:${el.font}px">${label}</div><div class="handle"></div>`;
+  items.forEach(it=>{
+    const el = document.createElement('div');
+    el.className = 'item ' + it.type + (it.id===selectedId ? ' selected' : '');
+    el.dataset.id = it.id;
+    el.style.left = it.x + 'px';
+    el.style.top = it.y + 'px';
+    el.style.width = it.w + 'px';
+    el.style.height = Math.max(0,it.h) + 'px';
+
+    if(it.type === 'line'){
+      el.style.width = it.w + 'px';
+      el.style.borderTopWidth = Math.max(1,it.border || it.h || 3) + 'px';
+      el.style.borderTopColor = it.color;
+      el.style.transform = `rotate(${it.rotation || 0}deg)`;
+    } else if(it.type === 'borderBox'){
+      el.style.borderWidth = Math.max(1,it.border||2) + 'px';
+      el.style.borderColor = it.color;
+    } else if(it.type === 'circle'){
+      el.style.borderWidth = Math.max(1,it.border||2) + 'px';
+      el.style.borderColor = it.color;
+      const rgba = colorToRGBA(it.color, it.alpha);
+      el.style.background = it.filled ? `rgba(${rgba.r},${rgba.g},${rgba.b},${rgba.a/255})` : 'transparent';
     } else {
-      d.innerHTML = `<div class="itemText" style="font-size:${el.font}px">${escapeHtml(el.text)}</div><div class="handle"></div>`;
+      const rgba = colorToRGBA(it.color,it.alpha);
+      el.style.background = `rgba(${rgba.r},${rgba.g},${rgba.b},${rgba.a/255})`;
     }
-    d.addEventListener('mousedown', startDrag);
-    d.querySelector('.handle').addEventListener('mousedown', startResize);
-    stage.appendChild(d);
+
+    if(it.type === 'image'){
+      const img = document.createElement('img');
+      img.src = it.url || '';
+      img.onerror = () => { img.style.display='none'; el.style.background='#3a1c1c'; };
+      el.appendChild(img);
+      const t = document.createElement('div');
+      t.className = 'txt';
+      t.textContent = it.url ? '' : 'Image URL';
+      el.appendChild(t);
+    } else if(!['borderBox','line','circle'].includes(it.type)){
+      const t = document.createElement('div');
+      t.className = 'txt';
+      t.style.color = it.textColor || '#fff';
+      t.textContent = it.label || '';
+      el.appendChild(t);
+    }
+
+    el.addEventListener('mousedown', e=>{
+      selectedId = it.id;
+      const rect = stage.getBoundingClientRect();
+      drag = {id:it.id, dx:e.clientX - rect.left - it.x, dy:e.clientY - rect.top - it.y};
+      render();
+      e.preventDefault();
+    });
+    stage.appendChild(el);
   });
-  renderLayers();
-  syncProps();
+  drawProps();
 }
-function escapeHtml(s){return String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
-function isImageUrl(url){return /^https?:\/\/.+\.(png|jpe?g|webp)(\?.*)?$/i.test(String(url||'').trim());}
-function renderLayers(){
-  const box=document.getElementById('layers'); box.innerHTML='';
-  elements.slice().reverse().forEach(el=>{
-    const l=document.createElement('div'); l.className='layer'+(selected===el.id?' active':'');
-    l.textContent=`${el.name} (${el.type})`;
-    l.onclick=()=>selectElement(el.id);
-    box.appendChild(l);
-  });
-}
-function selectElement(id){selected=id;render();}
-function getSelected(){return elements.find(e=>e.id===selected);}
-function startDrag(e){
-  if(e.target.className==='handle') return;
-  const id=+this.dataset.id; selected=id;
-  const el=getSelected();
-  const rect=stage.getBoundingClientRect();
-  dragging={id,dx:e.clientX-rect.left-el.x,dy:e.clientY-rect.top-el.y};
-  document.addEventListener('mousemove', move);
-  document.addEventListener('mouseup', stop);
+
+document.addEventListener('mousemove', e=>{
+  if(!drag) return;
+  const it = items.find(i=>i.id===drag.id);
+  if(!it) return;
+  const rect = stage.getBoundingClientRect();
+  it.x = Math.round(clamp(e.clientX - rect.left - drag.dx, 0, 512 - Math.min(it.w,512)));
+  it.y = Math.round(clamp(e.clientY - rect.top - drag.dy, 0, 512 - Math.min(Math.max(it.h,1),512)));
   render();
+});
+document.addEventListener('mouseup', ()=> drag=null);
+
+stage.addEventListener('mousedown', e=>{
+  if(e.target === stage){ selectedId = null; render(); }
+});
+
+function getSelected(){ return items.find(i=>i.id===selectedId); }
+
+function drawProps(){
+  const it = getSelected();
+  if(!it){ props.innerHTML = '<p class="mini">Select something on the canvas.</p>'; return; }
+  const isShape = ['borderBox','line','circle'].includes(it.type);
+  props.innerHTML = `
+    <label>Type</label><input value="${it.type}" disabled>
+    ${!isShape || it.type==='text' ? `<label>Label/Text</label><input id="p_label" value="${String(it.label||'').replace(/"/g,'&quot;')}">` : ''}
+    ${it.type==='image' ? `<label>Image URL (.png .jpg .jpeg .webp)</label><input id="p_url" value="${String(it.url||'').replace(/"/g,'&quot;')}">` : ''}
+    <div class="row">
+      <div><label>X</label><input id="p_x" type="number" value="${it.x}"></div>
+      <div><label>Y</label><input id="p_y" type="number" value="${it.y}"></div>
+    </div>
+    <div class="row">
+      <div><label>Width / Line Length</label><input id="p_w" type="number" value="${it.w}"></div>
+      <div><label>Height</label><input id="p_h" type="number" value="${it.h}"></div>
+    </div>
+    <label>Color</label><input id="p_color" type="color" value="${it.color}">
+    ${(!isShape && it.type!=='image') ? `<label>Text Color</label><input id="p_textColor" type="color" value="${it.textColor||'#ffffff'}">` : ''}
+    <div class="row">
+      <div><label>Alpha</label><input id="p_alpha" type="number" min="0" max="255" value="${it.alpha}"></div>
+      <div><label>Border/Line Thickness</label><input id="p_border" type="number" min="1" max="50" value="${it.border||3}"></div>
+    </div>
+    ${it.type==='line' ? `<label>Line Rotation</label><input id="p_rotation" type="number" value="${it.rotation||0}">` : ''}
+    ${it.type==='circle' ? `<label><input id="p_filled" type="checkbox" ${it.filled?'checked':''} style="width:auto"> Filled Circle/Oval</label>` : ''}
+  `;
+  bindProp('p_label','label');
+  bindProp('p_url','url');
+  bindNum('p_x','x',0,512); bindNum('p_y','y',0,512);
+  bindNum('p_w','w',1,512); bindNum('p_h','h',0,512);
+  bindProp('p_color','color'); bindProp('p_textColor','textColor');
+  bindNum('p_alpha','alpha',0,255); bindNum('p_border','border',1,50);
+  bindNum('p_rotation','rotation',-360,360);
+  const filled = document.getElementById('p_filled');
+  if(filled) filled.oninput = ()=>{ it.filled = filled.checked; render(); };
 }
-function startResize(e){
-  e.stopPropagation();
-  const id=+this.parentElement.dataset.id; selected=id;
-  const el=getSelected();
-  resizing={id,startX:e.clientX,startY:e.clientY,w:el.w,h:el.h};
-  document.addEventListener('mousemove', move);
-  document.addEventListener('mouseup', stop);
+function bindProp(id,key){
+  const el=document.getElementById(id); if(!el) return;
+  el.oninput=()=>{ const it=getSelected(); if(!it)return; it[key]=el.value; render(); };
 }
-function move(e){
-  const rect=stage.getBoundingClientRect();
-  if(dragging){
-    const el=elements.find(x=>x.id===dragging.id);
-    el.x=Math.round(clamp(e.clientX-rect.left-dragging.dx,0,512-el.w));
-    el.y=Math.round(clamp(e.clientY-rect.top-dragging.dy,0,512-el.h));
-    render();
-  }
-  if(resizing){
-    const el=elements.find(x=>x.id===resizing.id);
-    el.w=Math.round(clamp(resizing.w+(e.clientX-resizing.startX),10,512-el.x));
-    el.h=Math.round(clamp(resizing.h+(e.clientY-resizing.startY),10,512-el.y));
-    render();
-  }
+function bindNum(id,key,min,max){
+  const el=document.getElementById(id); if(!el) return;
+  el.oninput=()=>{ const it=getSelected(); if(!it)return; it[key]=clamp(parseFloat(el.value)||0,min,max); render(); };
 }
-function stop(){dragging=null;resizing=null;document.removeEventListener('mousemove',move);document.removeEventListener('mouseup',stop);}
-function syncProps(){
-  const el=getSelected();
-  document.getElementById('props').style.display=el?'block':'none';
-  document.getElementById('propsEmpty').style.display=el?'none':'block';
-  if(!el)return;
-  pName.value=el.name; pType.value=el.type; pX.value=el.x; pY.value=el.y; pW.value=el.w; pH.value=el.h;
-  pText.value=el.text; pUrl.value=el.url||''; pBg.value=el.bg; pFg.value=el.fg; pAlpha.value=el.alpha; pFont.value=el.font; pAction.value=el.action||'';
-}
-function updateProp(k,v){
-  const el=getSelected(); if(!el)return;
-  if(['x','y','w','h','alpha','font'].includes(k)) v=Number.isFinite(v)?v:0;
-  el[k]=v;
-  if(k==='x')el.x=clamp(el.x,0,512-el.w);
-  if(k==='y')el.y=clamp(el.y,0,512-el.h);
-  if(k==='w')el.w=clamp(el.w,10,512-el.x);
-  if(k==='h')el.h=clamp(el.h,10,512-el.y);
+
+function deleteSelected(){
+  if(selectedId == null) return;
+  items = items.filter(i=>i.id!==selectedId);
+  selectedId = null;
   render();
 }
 function duplicateSelected(){
-  const el=getSelected(); if(!el)return;
-  const copy={...el,id:idCounter++,name:el.name+'_copy',x:clamp(el.x+20,0,512-el.w),y:clamp(el.y+20,0,512-el.h)};
-  elements.push(copy); selected=copy.id; render();
+  const it = getSelected(); if(!it) return;
+  const copy = {...it, id:nextId++, x:clamp(it.x+16,0,500), y:clamp(it.y+16,0,500)};
+  items.push(copy); selectedId = copy.id; render();
 }
-function deleteSelected(){elements=elements.filter(e=>e.id!==selected); selected=null; render();}
 function clearAll(){
-  elements = [];
-  selected = null;
-  dragging = null;
-  resizing = null;
-  document.getElementById('exportBox').value = '';
+  items = [];
+  selectedId = null;
+  drag = null;
+  nextId = 1;
+  exportBox.value = '';
   render();
 }
-function toggleGrid(){stage.classList.toggle('grid');}
 
-function luaString(s){return JSON.stringify(String(s));}
 function exportLua(){
-  const lines = [];
-  lines.push("--@name Exported StarfallEx Screen UI");
-  lines.push("--@author UI Creator Exporter");
-  lines.push("--@client");
-  lines.push("");
-  lines.push("-- Link this chip to a Starfall screen.");
-  lines.push("-- Image URLs must be direct links ending in .png/.jpg/.jpeg/.webp and allowed by the server URL whitelist.");
-  lines.push("-- GitHub links must use raw.githubusercontent.com, not github.com/blob.");
-  lines.push("");
-  lines.push("local white = Color(255, 255, 255, 255)");
-  lines.push("local elements = {");
-  elements.forEach(el=>{
-    const bg=hexToRgb(el.bg), fg=hexToRgb(el.fg);
-    const action = el.type === 'button' ? (el.action || el.name || 'buttonClicked') : '';
-    lines.push("    {");
-    lines.push(`        type = ${luaString(el.type)}, name = ${luaString(el.name)},`);
-    lines.push(`        x = ${Math.round(el.x)}, y = ${Math.round(el.y)}, w = ${Math.round(el.w)}, h = ${Math.round(el.h)},`);
-    lines.push(`        text = ${luaString(el.text)}, font = ${Math.round(el.font)},`);
-    lines.push(`        bg = Color(${bg.r}, ${bg.g}, ${bg.b}, ${Math.round(el.alpha)}),`);
-    lines.push(`        fg = Color(${fg.r}, ${fg.g}, ${fg.b}, 255),`);
-    if(el.type === 'image') lines.push(`        url = ${luaString(el.url || '')},`);
-    if(action) lines.push(`        action = ${luaString(action)},`);
-    lines.push("    },");
+  let imageDecl = '';
+  let imageDraw = '';
+  let draw = [];
+
+  items.forEach((it, idx)=>{
+    const c = colorToRGBA(it.color, it.alpha);
+    const tc = colorToRGBA(it.textColor || '#ffffff', 255);
+    const colorLine = `render.setColor(Color(${c.r}, ${c.g}, ${c.b}, ${c.a}))`;
+
+    if(it.type === 'image'){
+      const name = `img${idx+1}`;
+      imageDecl += `local ${name} = render.createMaterial("${escLua(it.url)}")\n`;
+      imageDraw += `    if ${name} then\n        render.setColor(Color(255, 255, 255, 255))\n        render.setMaterial(${name})\n        render.drawTexturedRect(${Math.round(it.x)}, ${Math.round(it.y)}, ${Math.round(it.w)}, ${Math.round(it.h)})\n        render.setMaterial(nil)\n    end\n`;
+      return;
+    }
+
+    if(it.type === 'box' || it.type === 'button'){
+      draw.push(`    ${colorLine}\n    render.drawRect(${Math.round(it.x)}, ${Math.round(it.y)}, ${Math.round(it.w)}, ${Math.round(it.h)})`);
+      if(it.label){
+        draw.push(`    render.setColor(Color(${tc.r}, ${tc.g}, ${tc.b}, 255))\n    render.drawText(${Math.round(it.x + it.w/2)}, ${Math.round(it.y + it.h/2 - 10)}, "${escLua(it.label)}", 1)`);
+      }
+    } else if(it.type === 'text'){
+      draw.push(`    render.setColor(Color(${tc.r}, ${tc.g}, ${tc.b}, 255))\n    render.drawText(${Math.round(it.x)}, ${Math.round(it.y)}, "${escLua(it.label)}", 0)`);
+    } else if(it.type === 'borderBox'){
+      draw.push(`    ${colorLine}\n    render.drawRectOutline(${Math.round(it.x)}, ${Math.round(it.y)}, ${Math.round(it.w)}, ${Math.round(it.h)}, ${Math.round(it.border||2)})`);
+    } else if(it.type === 'line'){
+      const len = it.w;
+      const ang = (it.rotation || 0) * Math.PI / 180;
+      const x2 = Math.round(it.x + Math.cos(ang) * len);
+      const y2 = Math.round(it.y + Math.sin(ang) * len);
+      const thickness = Math.max(1, Math.round(it.border || it.h || 1));
+      draw.push(`    ${colorLine}\n    -- Thick line made from multiple render.drawLine calls\n    for i = 0, ${thickness-1} do\n        render.drawLine(${Math.round(it.x)}, ${Math.round(it.y)} + i, ${x2}, ${y2} + i)\n    end`);
+    } else if(it.type === 'circle'){
+      const cx = Math.round(it.x + it.w/2);
+      const cy = Math.round(it.y + it.h/2);
+      const rx = Math.round(it.w/2);
+      const ry = Math.round(it.h/2);
+      const thick = Math.max(1, Math.round(it.border||2));
+      if(Math.abs(rx-ry) <= 2){
+        if(it.filled){
+          draw.push(`    ${colorLine}\n    render.drawFilledCircle(${cx}, ${cy}, ${Math.max(1,rx)})`);
+        } else {
+          draw.push(`    ${colorLine}\n    for r = ${Math.max(1,rx)}, ${Math.max(1,rx)+thick-1} do\n        render.drawCircle(${cx}, ${cy}, r)\n    end`);
+        }
+      } else {
+        draw.push(`    ${colorLine}\n    -- Oval approximation using lines\n    local cx, cy = ${cx}, ${cy}\n    local rx, ry = ${Math.max(1,rx)}, ${Math.max(1,ry)}\n    local lastX, lastY = cx + rx, cy\n    for a = 1, 360 do\n        local rad = math.rad(a)\n        local x = cx + math.cos(rad) * rx\n        local y = cy + math.sin(rad) * ry\n        render.drawLine(lastX, lastY, x, y)\n        lastX, lastY = x, y\n    end`);
+      }
+    }
   });
-  lines.push("}");
-  lines.push("");
-  lines.push("local imageMaterials = {}");
-  lines.push("local imageErrors = {}");
-  lines.push("");
-  lines.push("local function loadImage(url)");
-  lines.push("    if not url or url == \"\" then return nil end");
-  lines.push("    if imageMaterials[url] then return imageMaterials[url] end");
-  lines.push("    if imageErrors[url] then return nil end");
-  lines.push("    local ok, mat = pcall(render.createMaterial, url)");
-  lines.push("    if ok and mat then");
-  lines.push("        imageMaterials[url] = mat");
-  lines.push("        return mat");
-  lines.push("    end");
-  lines.push("    imageErrors[url] = tostring(mat)");
-  lines.push("    print(\"Image failed to load: \" .. tostring(url) .. \" | \" .. tostring(mat))");
-  lines.push("    return nil");
-  lines.push("end");
-  lines.push("");
-  lines.push("local fonts = {}");
-  lines.push("local function useFont(size)");
-  lines.push("    size = math.floor(size or 18)");
-  lines.push("    if not fonts[size] then");
-  lines.push("        fonts[size] = render.createFont(\"Arial\", size, 700, true, false, false, false)");
-  lines.push("    end");
-  lines.push("    render.setFont(fonts[size])");
-  lines.push("end");
-  lines.push("");
-  lines.push("local function inside(mx, my, e)");
-  lines.push("    return mx and my and mx >= e.x and mx <= e.x + e.w and my >= e.y and my <= e.y + e.h");
-  lines.push("end");
-  lines.push("");
-  lines.push("local lastUse = false");
-  lines.push("local function runAction(name)");
-  lines.push("    -- Put your button actions here");
-  lines.push("    print(\"Starfall UI button pressed: \" .. tostring(name))");
-  lines.push("end");
-  lines.push("");
-  lines.push("hook.add(\"render\", \"draw_exported_ui\", function()");
-  lines.push("    render.clear(Color(8, 12, 10, 255))");
-  lines.push("    local mx, my = render.cursorPos()");
-  lines.push("    local using = input.isKeyDown(KEY.E)");
-  lines.push("");
-  lines.push("    for _, e in ipairs(elements) do");
-  lines.push("        local hover = inside(mx, my, e)");
-  lines.push("");
-  lines.push("        if e.type == \"image\" then");
-  lines.push("            local mat = loadImage(e.url)");
-  lines.push("            if mat then");
-  lines.push("                render.setColor(white)");
-  lines.push("                render.setMaterial(mat)");
-  lines.push("                render.drawTexturedRect(e.x, e.y, e.w, e.h)");
-  lines.push("            else");
-  lines.push("                render.setColor(e.bg)");
-  lines.push("                render.drawRect(e.x, e.y, e.w, e.h)");
-  lines.push("            end");
-  lines.push("        elseif e.type == \"text\" then");
-  lines.push("            if e.bg.a and e.bg.a > 0 then");
-  lines.push("                render.setColor(e.bg)");
-  lines.push("                render.drawRect(e.x, e.y, e.w, e.h)");
-  lines.push("            end");
-  lines.push("        else");
-  lines.push("            render.setColor(e.bg)");
-  lines.push("            render.drawRect(e.x, e.y, e.w, e.h)");
-  lines.push("        end");
-  lines.push("");
-  lines.push("        if hover then");
-  lines.push("            render.setColor(Color(255, 255, 255, 40))");
-  lines.push("            render.drawRect(e.x, e.y, e.w, e.h)");
-  lines.push("        end");
-  lines.push("");
-  lines.push("        if e.text and e.text ~= \"\" and e.type ~= \"image\" then");
-  lines.push("            useFont(e.font)");
-  lines.push("            render.setColor(e.fg)");
-  lines.push("            local tw, th = render.getTextSize(e.text)");
-  lines.push("            render.drawText(e.x + e.w / 2 - tw / 2, e.y + e.h / 2 - th / 2, e.text, 0)");
-  lines.push("        end");
-  lines.push("");
-  lines.push("        if e.type == \"button\" and hover and using and not lastUse then");
-  lines.push("            runAction(e.action or e.name)");
-  lines.push("        end");
-  lines.push("    end");
-  lines.push("");
-  lines.push("    lastUse = using");
-  lines.push("end)");
-  document.getElementById('exportBox').value = lines.join("\n");
+
+  const lua = `--@name Exported UI
+--@author StarfallEx UI Builder
+--@client
+
+-- StarfallEx screen/HUD UI export.
+-- Screens use 512x512 units.
+
+${imageDecl}
+hook.add("render", "draw_exported_ui", function()
+${imageDraw}${draw.join("\n")}
+end)
+`;
+  exportBox.value = lua;
 }
-async function copyExport(){
-  exportLua();
-  await navigator.clipboard.writeText(document.getElementById('exportBox').value);
-  document.getElementById('copyMsg').textContent='Copied Starfall Lua export.';
-  setTimeout(()=>copyMsg.textContent='',1600);
+
+function copyExport(){
+  if(!exportBox.value) exportLua();
+  exportBox.select();
+  document.execCommand('copy');
 }
-addElement('panel');
-addElement('button');
-addElement('text');
-exportLua();
+
+addElement('box');
+items[0].label = 'Example Box';
+items[0].x = 40; items[0].y = 40;
+addElement('borderBox');
+items[1].x = 260; items[1].y = 40;
+addElement('line');
+items[2].x = 60; items[2].y = 180; items[2].rotation = 15;
+addElement('circle');
+items[3].x = 280; items[3].y = 170;
+selectedId = null;
+render();
 </script>
 </body>
 </html>
